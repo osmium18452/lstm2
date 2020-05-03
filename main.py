@@ -2,6 +2,7 @@ import argparse
 import time
 import os
 import matplotlib.pyplot as plt
+import pickle as pkl
 
 import torch
 from torch.autograd import Variable
@@ -37,12 +38,16 @@ parser.add_argument('-g', '--gpu', default='0', type=str)
 parser.add_argument('--sum_dir', default='./save/sum')
 parser.add_argument('--draw',action='store_true')
 parser.add_argument('--draw_dir',default='./save/pics')
+parser.add_argument('--save_dir',default='./save/default')
+parser.add_argument('--pickle',action='store_true')
 args = parser.parse_args()
 torch.manual_seed(args.seed)
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 if not os.path.exists(args.sum_dir):
 	os.makedirs(args.sum_dir)
+if not os.path.exists(args.save_dir):
+	os.makedirs(args.save_dir)
 use_cuda = torch.cuda.is_available() and args.cuda_able
 
 # ##############################################################################
@@ -153,7 +158,6 @@ try:
 	for epoch in range(1, args.epochs + 1):
 		epoch_start_time = time.time()
 		loss = train()
-		print(type(loss))
 		train_loss.append(loss * 1000.)
 		train_ls.append(loss)
 
@@ -173,15 +177,6 @@ try:
 		                                                                                             loss, acc,
 		                                                                                             corrects, size))
 		print('-' * 90)
-		if not best_acc or best_acc < corrects:
-			best_acc = corrects
-			model_state_dict = rnn.state_dict()
-			model_source = {
-				"settings": args,
-				"model": model_state_dict,
-				"src_dict": data['dict']['train']
-			}
-			torch.save(model_source, args.save)
 	end_time = time.time()
 	if args.draw:
 		plt.figure()
@@ -203,7 +198,15 @@ try:
 
 		plt.legend(handles=[l1, l3, l4], loc="center right")
 		sv = plt.gcf()
-		sv.savefig(os.path.join(args.draw_dir, "lossAndAcc" + str(args.lr) +".png"), format="png", dpi=300)
+		sv.savefig(os.path.join(args.save_dir, "lossAndAcc" + str(args.lr) +".png"), format="png", dpi=300)
+
+	if args.pickle:
+		with open (os.path.join(args.save_dir,"train_ac.pkl"),'wb') as f:
+			pkl.dump(train_ac,file=f)
+		with open (os.path.join(args.save_dir,"train_ls.pkl"),'wb') as f:
+			pkl.dump(train_ls,file=f)
+		with open (os.path.join(args.save_dir,"val_ls.pkl"),'wb') as f:
+			pkl.dump(valid_ls,file=f)
 
 	with open(args.sum_dir + '/sum.txt', 'a+') as f:
 		print(args.lr, args.dropout, args.embed_dim, args.hidden_size, args.lstm_layers, args.bidirectional,

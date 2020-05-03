@@ -8,7 +8,7 @@ parser.add_argument("-g","--gpu",default="0")
 parser.add_argument("-s","--server",default="192.168.81.1")
 args=parser.parse_args()
 
-host = args.server
+host = socket.gethostname()
 port = 10386
 while True:
 	s = socket.socket()
